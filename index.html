@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="股票分析">
+<title>股票分析</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Noto Sans TC', -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
+.header { background: white; border-bottom: 1px solid #e2e8f0; padding: 16px 16px 12px; padding-top: calc(16px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; }
+.header h1 { font-size: 18px; font-weight: 900; margin-bottom: 12px; }
+.search-row { display: flex; gap: 8px; }
+.search-input { flex: 1; padding: 11px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 15px; font-family: inherit; background: #f8fafc; outline: none; transition: border-color 0.2s; }
+.search-input:focus { border-color: #3b82f6; background: white; }
+.search-btn { padding: 11px 18px; border-radius: 12px; border: none; background: #2563eb; color: white; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.search-btn:active { background: #1d4ed8; }
+.search-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+.content { max-width: 640px; margin: 0 auto; padding: 14px 12px 32px; }
+.card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; }
+.card-title { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+.price-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.stock-exchange { font-size: 11px; color: #94a3b8; }
+.stock-symbol { font-size: 22px; font-weight: 900; margin: 2px 0; }
+.stock-name { font-size: 12px; color: #64748b; max-width: 200px; line-height: 1.4; }
+.price-block { text-align: right; }
+.price-main { font-size: 30px; font-weight: 900; line-height: 1; }
+.price-currency { font-size: 13px; font-weight: 500; margin-left: 3px; }
+.price-change { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-top: 4px; }
+.up { color: #16a34a; } .down { color: #dc2626; }
+.up-bg { background: #f0fdf4; } .down-bg { background: #fef2f2; }
+.range-row { margin-top: 14px; }
+.range-label { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
+.range-bar { height: 6px; background: #e2e8f0; border-radius: 3px; position: relative; }
+.range-fill { height: 100%; background: linear-gradient(to right, #3b82f6, #8b5cf6); border-radius: 3px; }
+.range-dot { width: 10px; height: 10px; background: #0f172a; border-radius: 50%; position: absolute; top: -2px; transform: translateX(-50%); border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.chart-wrap { width: 100%; overflow: hidden; }
+svg.price-chart, svg.vol-chart { display: block; width: 100%; }
+.vol-label { font-size: 11px; color: #94a3b8; margin-bottom: 6px; margin-top: 10px; }
+.metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.metric-box { background: #f8fafc; border-radius: 12px; padding: 12px 14px; border: 1px solid #e2e8f0; }
+.metric-label { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+.metric-value { font-size: 20px; font-weight: 900; }
+.metric-hint { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+.fg-wrap { text-align: center; }
+.fg-score { font-size: 48px; font-weight: 900; line-height: 1; }
+.fg-label { font-size: 15px; font-weight: 700; margin: 4px 0 14px; }
+.fg-bar-wrap { position: relative; height: 10px; border-radius: 5px; overflow: visible; margin: 0 4px; }
+.fg-bar-bg { height: 10px; border-radius: 5px; background: linear-gradient(to right, #ef4444, #f97316, #eab308, #84cc16, #22c55e); }
+.fg-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: white; border: 2.5px solid currentColor; top: -2px; transform: translateX(-50%); box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.fg-ticks { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 6px; }
+.fg-desc { margin-top: 14px; background: #f8fafc; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #475569; line-height: 1.6; text-align: left; }
+.news-item { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 3px; text-decoration: none; color: inherit; }
+.news-item:last-child { border-bottom: none; padding-bottom: 0; }
+.news-title { font-size: 14px; font-weight: 600; line-height: 1.45; color: #0f172a; }
+.news-date { font-size: 11px; color: #94a3b8; }
+.ai-box { background: #f8fafc; border-radius: 12px; padding: 14px; font-size: 14px; line-height: 1.75; color: #334155; min-height: 60px; }
+.ai-box b { color: #0f172a; font-weight: 700; }
+.ai-loading { display: flex; align-items: center; gap: 8px; color: #64748b; font-size: 14px; }
+.dot-anim span { display: inline-block; width: 6px; height: 6px; background: #3b82f6; border-radius: 50%; margin: 0 2px; animation: bounce 1.2s infinite; }
+.dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+.dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+.error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 14px 16px; color: #dc2626; font-size: 14px; margin-bottom: 12px; }
+.empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 15px; }
+.empty-hint { font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📈 股票分析</h1>
+  <div class="search-row">
+    <input class="search-input" id="symbolInput" type="text" placeholder="美股：AAPL　台股：2330" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+    <button class="search-btn" id="searchBtn" onclick="runSearch()">查詢</button>
+  </div>
+</div>
+<div class="content" id="content">
+  <div class="empty">
+    <div class="empty-icon">🔍</div>
+    <div class="empty-text">輸入股票代碼開始分析</div>
+    <div class="empty-hint">支援美股（AAPL、TSLA）和台股（2330、0050）</div>
+  </div>
+</div>
+<script>
+function calcMA(c,p){if(c.length<p)return null;const s=c.slice(-p);return +(s.reduce((a,b)=>a+b,0)/p).toFixed(2);}
+function calcRSI(c,p=14){if(c.length<p+1)return null;let g=0,l=0;for(let i=c.length-p;i<c.length;i++){const d=c[i]-c[i-1];if(d>=0)g+=d;else l-=d;}const ag=g/p,al=l/p;if(al===0)return 100;return+(100-100/(1+ag/al)).toFixed(1);}
+function calcMACD(c){if(c.length<26)return null;const ema=(a,p)=>{const k=2/(p+1);let v=a[0];for(let i=1;i<a.length;i++)v=a[i]*k+v*(1-k);return v;};const s=c.slice(-26);return+(ema(s.slice(-12),12)-ema(s,26)).toFixed(3);}
+
+function buildChart(h){
+const p=h.map(d=>d.close),min=Math.min(…p),max=Math.max(…p),r=max-min||1;
+const W=560,H=150,PX=10,PY=8;
+const tx=i=>PX+(i/(p.length-1))*(W-PX*2),ty=v=>PY+(1-(v-min)/r)*(H-PY*2);
+const pts=p.map((v,i)=>`${tx(i)},${ty(v)}`).join(’ ‘);
+const area=`M${tx(0)},${ty(p[0])} `+p.map((v,i)=>`L${tx(i)},${ty(v)}`).join(’ ‘)+` L${tx(p.length-1)},${H} L${tx(0)},${H} Z`;
+const col=p[p.length-1]>=p[0]?’#22c55e’:’#ef4444’;
+const labs=[0,Math.floor(h.length/2),h.length-1].map(i=>({x:tx(i),t:h[i].date}));
+return `<svg class="price-chart" viewBox="0 0 ${W} ${H+18}"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${col}" stop-opacity="0.18"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>${[0,0.5,1].map(t=>{const y=PY+t*(H-PY*2);return`<line x1="${PX}" y1="${y}" x2="${W-PX}" y2="${y}" stroke="#e2e8f0" stroke-width="0.5"/><text x="${W-PX+3}" y="${y+4}" font-size="9" fill="#94a3b8">${(max-t*r).toFixed(1)}</text>`;}).join('')}<path d="${area}" fill="url(#ag)"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>${labs.map(({x,t})=>`<text x="${x}" y="${H+14}" text-anchor="middle" font-size="10" fill="#94a3b8">${t}</text>`).join('')}</svg>`;
+}
+
+function buildVol(h){
+const v=h.map(d=>d.volume),mx=Math.max(…v)||1,W=560,H=36,bw=W/v.length;
+return `<svg class="vol-chart" viewBox="0 0 ${W} ${H}">${v.map((val,i)=>{const bh=(val/mx)*H,up=h[i].close>=(h[i].open||h[i].close);return`<rect x="${i*bw+0.5}" y="${H-bh}" width="${Math.max(bw-1,1)}" height="${bh}" fill="${up?'rgba(34,197,94,0.4)':'rgba(239,68,68,0.4)'}"/>`;}).join('')}</svg>`;
+}
+
+function fgInfo(v){
+if(v<=25)return{label:‘極度恐懼’,color:’#ef4444’,desc:‘市場陷入極度恐慌，投資人大量拋售。歷史上這通常是逢低買入的機會，但需確認基本面無重大惡化。’};
+if(v<=45)return{label:‘恐懼’,color:’#f97316’,desc:‘市場情緒偏悲觀，股價普遍受壓。可以開始觀察優質股票，分批布局。’};
+if(v<=55)return{label:‘中性’,color:’#eab308’,desc:‘市場情緒平衡，多空力量相當。依個股基本面和技術面做決策。’};
+if(v<=75)return{label:‘貪婪’,color:’#84cc16’,desc:‘市場偏樂觀，股價普遍上漲。留意是否過熱，做好停利計畫。’};
+return{label:‘極度貪婪’,color:’#22c55e’,desc:‘市場情緒極度樂觀，可能存在泡沫風險。考慮減倉或設定嚴格停損。’};
+}
+
+function render(s,fg,news){
+const up=s.change>=0,pc=up?’#16a34a’:’#dc2626’,cs=up?’+’:’’;
+const rsiCol=s.rsi>=70?’#dc2626’:s.rsi<=30?’#16a34a’:’#2563eb’;
+const rsiHint=s.rsi>=70?‘⚠️ 超買區’:s.rsi<=30?‘✅ 超賣區’:‘正常範圍’;
+const maSig=s.ma5&&s.ma20?(s.ma5>s.ma20?‘✅ 短線向上’:‘⚠️ 短線偏弱’):‘資料不足’;
+const macdHint=s.macd!=null?(s.macd>0?‘✅ 動能向上’:‘⚠️ 動能偏弱’):‘資料不足’;
+let rp=50;if(s.high52&&s.low52){rp=Math.round(((s.price-s.low52)/(s.high52-s.low52))*100);rp=Math.max(2,Math.min(98,rp));}
+const vol=s.volume?(s.volume>=1e9?(s.volume/1e9).toFixed(2)+‘B’:s.volume>=1e6?(s.volume/1e6).toFixed(1)+‘M’:s.volume>=1e3?(s.volume/1e3).toFixed(0)+‘K’:s.volume):’–’;
+const fgi=fgInfo(fg);
+
+document.getElementById(‘content’).innerHTML=`
+
+  <div class="card">
+    <div class="price-header">
+      <div><div class="stock-exchange">${s.exchange}</div><div class="stock-symbol">${s.symbol}</div><div class="stock-name">${s.name}</div></div>
+      <div class="price-block">
+        <div class="price-main" style="color:${pc}">${s.price}<span class="price-currency">${s.currency}</span></div>
+        <div class="price-change ${up?'up up-bg':'down down-bg'}">${cs}${s.change} (${cs}${s.changePct}%)</div>
+      </div>
+    </div>
+    ${s.high52&&s.low52?`<div class="range-row"><div class="range-label"><span>52週低 ${s.low52}</span><span>現價 ${rp}%</span><span>52週高 ${s.high52}</span></div><div class="range-bar"><div class="range-fill" style="width:${rp}%"></div><div class="range-dot" style="left:${rp}%"></div></div></div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 近3個月走勢</div>
+    <div class="chart-wrap">${buildChart(s.history)}</div>
+    <div class="vol-label">成交量</div>
+    <div class="chart-wrap">${buildVol(s.history)}</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 技術指標</div>
+    <div class="metrics-grid">
+      <div class="metric-box"><div class="metric-label">RSI (14日)</div><div class="metric-value" style="color:${rsiCol}">${s.rsi??'–'}</div><div class="metric-hint">${rsiHint}</div></div>
+      <div class="metric-box"><div class="metric-label">MA5 / MA20</div><div class="metric-value" style="font-size:15px;line-height:1.4">${s.ma5??'–'}<br><span style="color:#94a3b8;font-size:13px">${s.ma20??'–'}</span></div><div class="metric-hint">${maSig}</div></div>
+      <div class="metric-box"><div class="metric-label">MACD</div><div class="metric-value" style="font-size:18px">${s.macd??'–'}</div><div class="metric-hint">${macdHint}</div></div>
+      <div class="metric-box"><div class="metric-label">成交量</div><div class="metric-value" style="font-size:18px">${vol}</div><div class="metric-hint">今日</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">😨 市場貪婪指數（美股）</div>
+    <div class="fg-wrap">
+      <div class="fg-score" style="color:${fgi.color}">${fg}</div>
+      <div class="fg-label" style="color:${fgi.color}">${fgi.label}</div>
+      <div class="fg-bar-wrap"><div class="fg-bar-bg"></div><div class="fg-dot" style="left:${fg}%;color:${fgi.color}"></div></div>
+      <div class="fg-ticks"><span>極度恐懼</span><span>中性</span><span>極度貪婪</span></div>
+      <div class="fg-desc">${fgi.desc}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🤖 AI 分析建議</div>
+    <div class="ai-box" id="aiBox"><div class="ai-loading"><div class="dot-anim"><span></span><span></span><span></span></div>分析中，請稍候…</div></div>
+  </div>
+
+${news.length?`<div class="card"><div class="card-title">📰 最新消息</div>${news.map(n=>`<a class="news-item" href="${n.link}" target="_blank" rel="noopener"><div class="news-title">${n.title}</div><div class="news-date">${n.date}</div></a>`).join('')}</div>`:’’}
+
+  <div style="font-size:11px;color:#94a3b8;text-align:center;padding:8px 0">⚠️ 本分析僅供參考，不構成投資建議。投資有風險，請自行判斷。</div>`;
+}
+
+async function fetchAI(s,fg){
+const fd=fg<=25?‘極度恐懼’:fg<=45?‘恐懼’:fg<=55?‘中性’:fg<=75?‘貪婪’:‘極度貪婪’;
+const prompt=`你是專業股票分析師，請用繁體中文分析以下股票，語言簡單易懂，分段清晰。\n\n股票：${s.name}（${s.symbol}）\n現價：${s.price} ${s.currency} | 今日漲跌：${s.changePct}%\nRSI：${s.rsi??'無'} | MA5：${s.ma5??'無'} | MA20：${s.ma20??'無'} | MACD：${s.macd??'無'}\n52週高/低：${s.high52??'無'} / ${s.low52??'無'}\n市場貪婪指數：${fg}（${fd}）\n\n請提供：\n1. 📊 目前狀況 — 股價位置和近期趨勢（2句）\n2. 🔍 技術指標解讀 — RSI、均線、MACD 是否買超或賣超（2-3句）\n3. 😨 貪婪指數影響 — 結合市場情緒的看法（1-2句）\n4. 💡 操作建議 — 是否適合買入？預期持有多久？何時考慮賣出？（3句）\n5. ⚠️ 風險提示 — 需要注意什麼？（1-2句）\n\n每段開頭用對應 emoji，語言親切簡潔。`;
+try{
+const res=await fetch(‘https://api.anthropic.com/v1/messages’,{method:‘POST’,headers:{‘Content-Type’:‘application/json’},body:JSON.stringify({model:‘claude-sonnet-4-20250514’,max_tokens:1000,stream:true,messages:[{role:‘user’,content:prompt}]})});
+const reader=res.body.getReader(),dec=new TextDecoder();let full=’’;
+const box=document.getElementById(‘aiBox’);if(!box)return;
+while(true){const{done,value}=await reader.read();if(done)break;
+for(const line of dec.decode(value).split(’\n’).filter(l=>l.startsWith(‘data: ‘))){
+try{const ev=JSON.parse(line.slice(6));if(ev.type===‘content_block_delta’&&ev.delta?.text){full+=ev.delta.text;box.innerHTML=full.replace(/**(.*?)**/g,’<b>$1</b>’).replace(/\n/g,’<br>’);}}catch{}}}
+}catch{const b=document.getElementById(‘aiBox’);if(b)b.textContent=‘AI 分析暫時無法使用，請稍後再試。’;}
+}
+
+async function runSearch(){
+const sym=document.getElementById(‘symbolInput’).value.trim().toUpperCase();
+if(!sym)return;
+const btn=document.getElementById(‘searchBtn’);
+btn.disabled=true;btn.textContent=‘載入中…’;
+document.getElementById(‘content’).innerHTML=’<div class="empty"><div class="empty-icon">⏳</div><div class="empty-text">載入資料中…</div></div>’;
+try{
+const isTW=/^\d{4,6}$/.test(sym),ys=isTW?sym+’.TW’:sym;
+const yUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${ys}?interval=1d&range=3mo`;
+const res=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
+const parsed=JSON.parse((await res.json()).contents);
+if(!parsed.chart?.result?.length)throw new Error(‘找不到此股票代碼，請確認後重試’);
+const r=parsed.chart.result[0],meta=r.meta,ts=r.timestamp||[],q=r.indicators?.quote?.[0]||{};
+const history=ts.map((t,i)=>({date:new Date(t*1000).toLocaleDateString(‘zh-TW’,{month:‘2-digit’,day:‘2-digit’}),close:q.close?.[i]?+q.close[i].toFixed(2):null,open:q.open?.[i]?+q.open[i].toFixed(2):null,high:q.high?.[i]?+q.high[i].toFixed(2):null,low:q.low?.[i]?+q.low[i].toFixed(2):null,volume:q.volume?.[i]||0})).filter(d=>d.close!==null);
+const cl=history.map(d=>d.close),price=+meta.regularMarketPrice.toFixed(2),prev=+(meta.previousClose||meta.chartPreviousClose||cl[cl.length-2]).toFixed(2),change=+(price-prev).toFixed(2);
+const stock={symbol:meta.symbol,name:meta.longName||meta.shortName||ys,price,prev,change,changePct:+((change/prev)*100).toFixed(2),high52:meta.fiftyTwoWeekHigh?+meta.fiftyTwoWeekHigh.toFixed(2):null,low52:meta.fiftyTwoWeekLow?+meta.fiftyTwoWeekLow.toFixed(2):null,currency:meta.currency,exchange:meta.fullExchangeName||meta.exchangeName,volume:meta.regularMarketVolume,history,closes:cl,rsi:calcRSI(cl),ma5:calcMA(cl,5),ma20:calcMA(cl,20),macd:calcMACD(cl)};
+
+```
+let fg=50;
+try{const fr=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://production.dataviz.cnn.io/index/fearandgreed/graphdata')}`);const fd=JSON.parse((await fr.json()).contents);fg=Math.round(fd.fear_and_greed?.score??fd.score??50);}catch{}
+
+let news=[];
+try{const nr=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${ys}&region=US&lang=en-US`)}`);const doc=new DOMParser().parseFromString((await nr.json()).contents,'text/xml');news=Array.from(doc.querySelectorAll('item')).slice(0,5).map(item=>({title:item.querySelector('title')?.textContent||'',link:item.querySelector('link')?.textContent||'#',date:item.querySelector('pubDate')?.textContent?new Date(item.querySelector('pubDate').textContent).toLocaleDateString('zh-TW'):''})).filter(n=>n.title);}catch{}
+
+render(stock,fg,news);fetchAI(stock,fg);
+```
+
+}catch(e){
+document.getElementById(‘content’).innerHTML=`<div class="error-box">⚠️ ${e.message||'載入失敗，請稍後再試'}</div><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">請確認股票代碼後重試</div><div class="empty-hint">美股：AAPL、TSLA、NVDA<br>台股：2330、0050、2317</div></div>`;
+}finally{btn.disabled=false;btn.textContent=‘查詢’;}
+}
+document.getElementById(‘symbolInput’).addEventListener(‘keydown’,e=>{if(e.key===‘Enter’)runSearch();});
+</script>
+
+</body>
+</html>
